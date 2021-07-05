@@ -43,7 +43,7 @@ namespace o2
 namespace tpc
 {
 
-template <class T=CalibPedestal>
+template <class T = CalibPedestal>
 class TPCCalibRawDevice : public o2::framework::Task
 {
  public:
@@ -135,39 +135,35 @@ class TPCCalibRawDevice : public o2::framework::Task
   bool mDirectFileDump{false}; ///< directly dump the calibration data to file
 
   //____________________________________________________________________________
- void sendOutput(DataAllocator& output) 
- {
+  void sendOutput(DataAllocator& output)
+  {
 
-   if constexpr(std::is_same_v<T, CalibPedestal>)
-    {
-       std::array<const CalDet<float>*, 2> data = {&mCalib.getPedestal(), &mCalib.getNoise()};
-       std::array<CDBType, 2> dataType = {CDBType::CalPedestal, CDBType::CalNoise};
+    if constexpr (std::is_same_v<T, CalibPedestal>) {
+      std::array<const CalDet<float>*, 2> data = {&mCalib.getPedestal(), &mCalib.getNoise()};
+      std::array<CDBType, 2> dataType = {CDBType::CalPedestal, CDBType::CalNoise};
 
-       for (size_t i = 0; i < data.size(); ++i) {
-	 auto cal = data[i];
-	 auto image = o2::utils::MemFileHelper::createFileImage(cal, typeid(*cal), cal->getName(), "data");
-	 int type = int(dataType[i]);
-	 
-	 header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)((mLane << 4) + i)};
-	 output.snapshot(Output{gDataOriginTPC, "CLBPART", subSpec}, *image.get());
-	 output.snapshot(Output{gDataOriginTPC, "CLBPARTINFO", subSpec}, type);
-       }
+      for (size_t i = 0; i < data.size(); ++i) {
+        auto cal = data[i];
+        auto image = o2::utils::MemFileHelper::createFileImage(cal, typeid(*cal), cal->getName(), "data");
+        int type = int(dataType[i]);
+
+        header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)((mLane << 4) + i)};
+        output.snapshot(Output{gDataOriginTPC, "CLBPART", subSpec}, *image.get());
+        output.snapshot(Output{gDataOriginTPC, "CLBPARTINFO", subSpec}, type);
+      }
+    } else if constexpr (std::is_same_v<T, CalibPulser>) {
+      std::unordered_map<std::string, CalDet<float>> pulserCalib;
+      pulserCalib["T0"] = mCalib.getT0();
+      pulserCalib["Width"] = mCalib.getWidth();
+      pulserCalib["Qtot"] = mCalib.getQtot();
+      int type = int(CDBType::CalPulser);
+      auto image = o2::utils::MemFileHelper::createFileImage(&pulserCalib, typeid(pulserCalib), "CalibPulser", "data");
+
+      header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)((mLane << 4))};
+      output.snapshot(Output{gDataOriginTPC, "CLBPART", subSpec}, *image.get());
+      output.snapshot(Output{gDataOriginTPC, "CLBPARTINFO", subSpec}, type);
     }
-   else if constexpr(std::is_same_v<T, CalibPulser>)
-    { 
-       std::unordered_map<std::string, CalDet<float>> pulserCalib;
-       pulserCalib["T0"] = mCalib.getT0();
-       pulserCalib["Width"] = mCalib.getWidth();
-       pulserCalib["Qtot"] = mCalib.getQtot();
-       int type = int(CDBType::CalPulser);
-       auto image = o2::utils::MemFileHelper::createFileImage(&pulserCalib, typeid(pulserCalib), "CalibPulser", "data");
-
-       header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)((mLane << 4))};
-       output.snapshot(Output{gDataOriginTPC, "CLBPART", subSpec}, *image.get());
-       output.snapshot(Output{gDataOriginTPC, "CLBPARTINFO", subSpec}, type);
-     }
-
- }
+  }
 
   //____________________________________________________________________________
   void dumpCalibData()
@@ -175,9 +171,8 @@ class TPCCalibRawDevice : public o2::framework::Task
     if (mDirectFileDump && !mCalibDumped) {
       LOGP(info, "Dumping output");
       std::string desc = "pedestals";
-      if constexpr(std::is_same_v<T, CalibPulser>)
-      {
-	desc = "pulser";
+      if constexpr (std::is_same_v<T, CalibPulser>) {
+        desc = "pulser";
       }
       mCalib.dumpToFile(fmt::format("{}-{:02}.root", desc, mLane));
       mCalibDumped = true;
@@ -185,7 +180,7 @@ class TPCCalibRawDevice : public o2::framework::Task
   }
 };
 
-template <class T=CalibPedestal>
+template <class T = CalibPedestal>
 DataProcessorSpec getTPCCalibRawSpec(const std::string inputSpec, uint32_t ilane = 0, std::vector<int> sectors = {}, uint32_t publishAfterTFs = 0)
 {
   std::vector<o2::framework::OutputSpec> outputs;
@@ -193,10 +188,9 @@ DataProcessorSpec getTPCCalibRawSpec(const std::string inputSpec, uint32_t ilane
   outputs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, "CLBPARTINFO"});
 
   std::string desc = "pedestal";
-  if constexpr(std::is_same_v<T, CalibPulser>)
-   {
-     desc = "pulser";
-   }   
+  if constexpr (std::is_same_v<T, CalibPulser>) {
+    desc = "pulser";
+  }
   const auto id = fmt::format("calib-tpc-{}-{:02}", desc, ilane);
 
   return DataProcessorSpec{

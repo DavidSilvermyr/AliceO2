@@ -91,7 +91,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   if (nLanes <= 0) {
     return workflow;
   }
-  if ( (inputCalib.compare("pedestal") != 0) && (inputCalib.compare("pulser") != 0) ) {
+  if ((inputCalib.compare("pedestal") != 0) && (inputCalib.compare("pulser") != 0)) {
     return workflow;
   }
 
@@ -103,8 +103,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     auto last = std::min(tpcsectors.end(), first + sectorsPerLane);
     std::vector<int> range(first, last);
 
-    if (inputCalib.compare("pedestal") == 0) workflow.emplace_back(getTPCCalibRawSpec<CalibPedestal>(inputSpec, ilane, range, publishAfterTFs));
-    else if (inputCalib.compare("pulser") == 0) workflow.emplace_back(getTPCCalibRawSpec<CalibPulser>(inputSpec, ilane, range, publishAfterTFs));
+    if (inputCalib.compare("pedestal") == 0)
+      workflow.emplace_back(getTPCCalibRawSpec<CalibPedestal>(inputSpec, ilane, range, publishAfterTFs));
+    else if (inputCalib.compare("pulser") == 0)
+      workflow.emplace_back(getTPCCalibRawSpec<CalibPulser>(inputSpec, ilane, range, publishAfterTFs));
   }
 
   workflow.emplace_back(getCalDetMergerPublisherSpec(nLanes, skipCCDB, publishAfterTFs > 0));
